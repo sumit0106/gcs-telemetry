@@ -13,7 +13,8 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        git 'https://github.com/sumit0106/gcs-telemetry.git'
+        git branch: 'main', url: 'https://github.com/sumit0106/gcs-telemetry.git'
+
       }
     }
 
