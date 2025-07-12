@@ -55,7 +55,12 @@ pipeline {
 
     stage('Deploy using docker-compose') {
       steps {
-        sh 'docker-compose up -d'
+         withCredentials([string(credentialsId: 'env-file-secret', variable: 'ENV_CONTENT')]) {
+          sh '''
+            echo "$ENV_CONTENT" > .env
+            docker-compose down || true
+            docker-compose up -d
+          '''
       }
     }
   }
