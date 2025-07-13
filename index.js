@@ -1,51 +1,85 @@
+// index.js
 require("dotenv").config();
 const express = require("express");
-const promClient = require("prom-client");
+const mongoose = require("mongoose");
+const client = require("prom-client");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/telemetrydb";
 
+// Prometheus metrics
+const telemetryCounter = new client.Counter({
+  name: "telemetry_received_total",
+  help: "Total number of telemetry requests received",
+});
+
+const telemetryDuration = new client.Histogram({
+  name: "telemetry_received_duration_seconds",
+  help: "Duration of telemetry request processing in seconds",
+  buckets: [0.1, 0.5, 1, 2, 5],
+});
+
+// Connect to MongoDB
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+mongoose.connection.once("open", () => {
+  console.log("🟢 Connected to MongoDB DB:", mongoose.connection.name);
+
+  // Start Express server only after DB connected
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+});
+
+mongoose.connection.on("error", (err) => {
+  console.error("🔴 MongoDB connection error:", err);
+});
+
+// Define telemetry schema and model
+const telemetrySchema = new mongoose.Schema({
+  timestamp: { type: Date, default: Date.now },
+  data: mongoose.Schema.Types.Mixed,
+});
+const Telemetry = mongoose.model("Telemetry", telemetrySchema);
+
+// Middleware
 app.use(express.json());
 
-// Enable default system metrics
-promClient.collectDefaultMetrics();
-
-// Custom counter for telemetry
-const telemetryCounter = new promClient.Counter({
-  name: "telemetry_received_total",
-  help: "Total number of telemetry messages received",
-});
-
-// Custom histogram for telemetry request duration
-const telemetryDuration = new promClient.Histogram({
-  name: "telemetry_request_duration_seconds",
-  help: "Duration of telemetry POST requests in seconds",
-  buckets: [0.05, 0.1, 0.2, 0.5, 1, 2],
-});
-
-// POST /telemetry – Receives drone telemetry data
+// Telemetry POST endpoint
 app.post("/telemetry", async (req, res) => {
   const end = telemetryDuration.startTimer();
   telemetryCounter.inc();
 
   console.log("📡 Telemetry Received:", req.body);
 
-  res.status(200).json({ message: "Telemetry received" });
-  end(); // record duration
+  try {
+    const entry = new Telemetry({ data: req.body });
+    await entry.save();
+    res.status(201).json({ message: "Telemetry received and stored" });
+  } catch (err) {
+    console.error("Error saving telemetry:", err);
+    res.status(500).json({ error: "Failed to store telemetry" });
+  }
+
+  end();
 });
 
-// /health check
 app.get("/health", (req, res) => {
-  res.send("OK");
+  res.status(200).send("OK");
 });
 
-// /metrics for Prometheus scraping
+// Metrics endpoint
 app.get("/metrics", async (req, res) => {
-  res.set("Content-Type", promClient.register.contentType);
-  res.end(await promClient.register.metrics());
+  try {
+    res.set("Content-Type", client.register.contentType);
+    const metrics = await client.register.metrics();
+    res.end(metrics);
+  } catch (ex) {
+    res.status(500).end(ex);
+  }
 });
 
-// Start the server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
