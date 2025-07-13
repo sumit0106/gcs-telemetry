@@ -25,6 +25,7 @@ Setup Steps :-
   2.	Created Dockerfile used for containerization.
   3.	Written Docker-Compose.yml for deployment of above application.
   4.	.env used for configuration with Jenkins credentials (Screenshot added in GitHub repo in Screenshots folder named (.env secrets in Jenkins))
+  5.	Stored the data in MongoDB for future reference.
    
 •	Monitoring Setup
   1.	Prometheus scrapes metrics from EC2IP:3000/metrics
