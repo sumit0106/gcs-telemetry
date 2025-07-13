@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Create logs directory if it doesn't exist
-const logDir = "/var/log/telemetry";
+const logDir = "/tmp/telemetry";
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
