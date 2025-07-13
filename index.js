@@ -58,7 +58,7 @@ app.get("/metrics", async (req, res) => {
   res.end(await promClient.register.metrics());
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
