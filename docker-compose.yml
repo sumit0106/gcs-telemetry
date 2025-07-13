@@ -8,8 +8,6 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    volumes:
-      - telemetry-logs:/var/log/telemetry
     networks:
       - monitoring
 
@@ -36,10 +34,6 @@ services:
     networks:
       - monitoring
 
-volumes:
-  telemetry-logs:
-
 networks:
   monitoring:
     driver: bridge
-
