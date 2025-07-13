@@ -1,9 +1,20 @@
 require("dotenv").config();
 const express = require("express");
 const promClient = require("prom-client");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Create logs directory if it doesn't exist
+const logDir = "/var/log/telemetry";
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+// Create a write stream for logging
+const logStream = fs.createWriteStream(path.join(logDir, "app.log"), { flags: "a" });
 
 app.use(express.json());
 
@@ -20,7 +31,7 @@ const telemetryCounter = new promClient.Counter({
 const telemetryDuration = new promClient.Histogram({
   name: "telemetry_request_duration_seconds",
   help: "Duration of telemetry POST requests in seconds",
-  buckets: [0.05, 0.1, 0.2, 0.5, 1, 2] // Customize as needed
+  buckets: [0.05, 0.1, 0.2, 0.5, 1, 2],
 });
 
 // POST /telemetry – Receives drone telemetry data
@@ -28,8 +39,9 @@ app.post("/telemetry", async (req, res) => {
   const end = telemetryDuration.startTimer();
   telemetryCounter.inc();
 
-  // Simulate work or process data (optional)
-  console.log("📡 Telemetry Received:", req.body);
+  const logEntry = `[${new Date().toISOString()}] 📡 Telemetry Received: ${JSON.stringify(req.body)}\n`;
+  logStream.write(logEntry);
+  console.log(logEntry.trim());
 
   res.status(200).json({ message: "Telemetry received" });
   end(); // record duration

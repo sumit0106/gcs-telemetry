@@ -8,6 +8,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    volumes:
+      - telemetry-logs:/var/log/telemetry
     networks:
       - monitoring
 
@@ -33,6 +35,9 @@ services:
       - prometheus
     networks:
       - monitoring
+
+volumes:
+  telemetry-logs:
 
 networks:
   monitoring:
