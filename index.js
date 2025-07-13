@@ -1,20 +1,9 @@
 require("dotenv").config();
 const express = require("express");
 const promClient = require("prom-client");
-const fs = require("fs");
-const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Create logs directory if it doesn't exist
-const logDir = "/tmp/telemetry";
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
-}
-
-// Create a write stream for logging
-const logStream = fs.createWriteStream(path.join(logDir, "app.log"), { flags: "a" });
 
 app.use(express.json());
 
@@ -39,9 +28,7 @@ app.post("/telemetry", async (req, res) => {
   const end = telemetryDuration.startTimer();
   telemetryCounter.inc();
 
-  const logEntry = `[${new Date().toISOString()}] 📡 Telemetry Received: ${JSON.stringify(req.body)}\n`;
-  logStream.write(logEntry);
-  console.log(logEntry.trim());
+  console.log("📡 Telemetry Received:", req.body);
 
   res.status(200).json({ message: "Telemetry received" });
   end(); // record duration
@@ -58,7 +45,7 @@ app.get("/metrics", async (req, res) => {
   res.end(await promClient.register.metrics());
 });
 
+// Start the server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
